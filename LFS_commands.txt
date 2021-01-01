@@ -1,0 +1,67 @@
+LFS Commands
+
+#set the LFS variable
+export LFS=/mnt/lfs
+
+# Mount LFS and boot partitions (I added boot since I created a separate boot partition)
+# vfat is used for partitions
+sudo mount -v -t ext4 /dev/sdxx $LFS
+sudo mount -v -t vfat /dev/sdxx $LFS/boot
+
+#Start swap partition (optional if you use swap)
+
+sudo /sbin/swapon -v /dev/sdb3
+
+#switch to LFS User
+
+su - lfs
+
+#When entering chroot first mount all the virtual kernel filesystems
+
+
+sudo mount -v --bind /dev $LFS/dev
+sudo mount -v --bind /dev/pts $LFS/dev/pts
+sudo mount -vt proc proc $LFS/proc
+sudo mount -vt sysfs sysfs $LFS/sys
+sudo mount -vt tmpfs tmpfs $LFS/run
+
+# Chroot into the environment. This is used from chapter 7-8
+chroot "$LFS" /usr/bin/env -i   \
+    HOME=/root                  \
+    TERM="$TERM"                \
+    PS1='(lfs chroot) \u:\w\$ ' \
+    PATH=/bin:/usr/bin:/sbin:/usr/sbin \
+    /bin/bash --login +h
+
+# When exiting please run these commands
+
+exit
+sudo umount $LFS/dev{/pts,}
+sudo umount $LFS/{sys,proc,run}
+
+# When you aren't using the drive or are shutting down unmount all the drives
+# Turn swap off as well if you have swap
+# l is to lazily force the unmounting because you'll get the target is busy error
+
+sudo umount -l $LFS
+sudo umount -l $LFS/boot
+sudo swapoff -v /dev/sdxx
+
+# From chapter 8-11 you use this update chroot command
+sudo chroot "$LFS" /usr/bin/env -i          \
+    HOME=/root TERM="$TERM"            \
+    PS1='(lfs chroot) \u:\w\$ '        \
+    PATH=/bin:/usr/bin:/sbin:/usr/sbin \
+    /bin/bash --login
+
+# After completing LFS from chapter 10 umount all the virtual filesystems and partitions
+# Shutdown and then reboot. LFS should boot
+
+umount -v $LFS/dev/pts
+umount -v $LFS/dev
+umount -v $LFS/run
+umount -v $LFS/proc
+umount -v $LFS/sys
+umount -v $LFS
+
+
